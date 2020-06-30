@@ -115,6 +115,7 @@ EOS
       zsh-hook) cat <<EOS
 # add zsh hook
 _fasd_preexec() {
+  case \$2 in *\ \(\)\ *) return;; esac
   { eval "fasd --proc \$(fasd --sanitize \$2)"; } >> "$_FASD_SINK" 2>&1
 }
 autoload -Uz add-zsh-hook
@@ -452,6 +453,9 @@ $(fasd --backend $each)"
       done)"
     fi
 
+    local fcwd=cat
+    if [ "$cwd" ]; then fcwd="grep $PWD/"; fi  # filter by current working directory
+
     # query the database
     [ "$_fasd_data" ] && printf %s\\n "$_fasd_data" | \
       $_FASD_AWK -v t="$(date +%s)" -F"|" '
@@ -474,7 +478,7 @@ $(fasd --backend $each)"
       }
       END {
         for(i in paths) printf "%-10s %s\n", '"$prior"', i
-      }' - 2>> "$_FASD_SINK"
+      }' - | $fcwd 2>> "$_FASD_SINK"
     ;;
 
   --backend)
@@ -525,6 +529,7 @@ $(fasd --backend $each)"
       -*) local o="${1#-}"; while [ "$o" ]; do case $o in
           s*) local show=1;;
           l*) local lst=1;;
+          c*) local cwd=1;;
           i*) [ -z "$comp" ] && local interactive=1 show=1;;
           r*) local mode=rank;;
           t*) local mode=recent;;
